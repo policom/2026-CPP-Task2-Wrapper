@@ -5,13 +5,26 @@
 #include <string>
 #include <utility>
 
+namespace {
+    constexpr unsigned char kAsciiLimit = 128;
+    constexpr unsigned char kUtf8FirstByteD0 = 0xD0;
+    constexpr unsigned char kUtf8FirstByteD1 = 0xD1;
+    constexpr unsigned char kUtf8LowerYo = 0x91;
+    constexpr unsigned char kUtf8UpperYo = 0x81;
+    constexpr unsigned char kUtf8LowerStart = 0x80;
+    constexpr unsigned char kUtf8LowerEnd = 0x8F;
+    constexpr unsigned char kUtf8UpperStart = 0xB0;
+    constexpr unsigned char kUtf8UpperEnd = 0xBF;
+    constexpr unsigned char kUtf8CaseDifference = 0x20;
+}
+
 TextDocument::TextDocument(std::string text)
     : text_(std::move(text)) {
 }
 
 bool TextDocument::isWordCharacter(unsigned char character) {
     return std::isalnum(character) != 0
-        || character >= 128
+        || character >= kAsciiLimit
         || character == '_';
 }
 
@@ -23,41 +36,51 @@ void TextDocument::capitalizeUtf8Character(
         return;
     }
 
-    const unsigned char first =
+    const auto first =
         static_cast<unsigned char>(text[position]);
 
-    if (first == 0xD1 && position + 1 < text.size()) {
-        const unsigned char second =
+    if (first == kUtf8FirstByteD1
+        && position + 1 < text.size()) {
+
+        const auto second =
             static_cast<unsigned char>(text[position + 1]);
 
-        if (second == 0x91) {
-            text[position] = static_cast<char>(0xD0);
-            text[position + 1] = static_cast<char>(0x81);
+        if (second == kUtf8LowerYo) {
+            text[position] = static_cast<char>(kUtf8FirstByteD0);
+            text[position + 1] = static_cast<char>(kUtf8UpperYo);
             return;
         }
 
-        if (second >= 0x80 && second <= 0x8F) {
-            text[position] = static_cast<char>(0xD0);
-            text[position + 1] =
-                static_cast<char>(second - 0x20);
+        if (second >= kUtf8LowerStart
+            && second <= kUtf8LowerEnd) {
+
+            text[position] = static_cast<char>(kUtf8FirstByteD0);
+            text[position + 1] = static_cast<char>(
+                second - kUtf8CaseDifference
+                );
             return;
         }
     }
 
-    if (first == 0xD0 && position + 1 < text.size()) {
-        const unsigned char second =
+    if (first == kUtf8FirstByteD0
+        && position + 1 < text.size()) {
+
+        const auto second =
             static_cast<unsigned char>(text[position + 1]);
 
-        if (second >= 0xB0 && second <= 0xBF) {
-            text[position + 1] =
-                static_cast<char>(second - 0x20);
+        if (second >= kUtf8UpperStart
+            && second <= kUtf8UpperEnd) {
+
+            text[position + 1] = static_cast<char>(
+                second - kUtf8CaseDifference
+                );
         }
     }
 
-    if (first < 128) {
+    if (first < kAsciiLimit) {
         text[position] = static_cast<char>(
             std::toupper(first)
-        );
+            );
     }
 }
 
@@ -72,7 +95,7 @@ std::string TextDocument::replaceWords(
     std::size_t position = 0;
 
     while ((position = text_.find(oldWord, position))
-           != std::string::npos) {
+        != std::string::npos) {
 
         const bool leftBoundary =
             position == 0
@@ -91,7 +114,8 @@ std::string TextDocument::replaceWords(
         if (leftBoundary && rightBoundary) {
             text_.replace(position, oldWord.size(), newWord);
             position += newWord.size();
-        } else {
+        }
+        else {
             position += oldWord.size();
         }
     }
@@ -111,7 +135,7 @@ std::string TextDocument::searchPhrase(
     bool found = false;
 
     while ((position = text_.find(phrase, position))
-           != std::string::npos) {
+        != std::string::npos) {
 
         if (found) {
             result << ", ";
@@ -133,7 +157,7 @@ std::string TextDocument::capitalizeWords() {
     bool newWord = true;
 
     for (std::size_t i = 0; i < text_.size(); ++i) {
-        const unsigned char character =
+        const auto character =
             static_cast<unsigned char>(text_[i]);
 
         if (isWordCharacter(character)) {
@@ -142,7 +166,8 @@ std::string TextDocument::capitalizeWords() {
             }
 
             newWord = false;
-        } else {
+        }
+        else {
             newWord = true;
         }
     }
@@ -154,7 +179,7 @@ std::string TextDocument::capitalizeSentences() {
     bool sentenceStart = true;
 
     for (std::size_t i = 0; i < text_.size(); ++i) {
-        const unsigned char character =
+        const auto character =
             static_cast<unsigned char>(text_[i]);
 
         if (sentenceStart && isWordCharacter(character)) {
@@ -193,9 +218,9 @@ std::string TextDocument::numberSentences() {
             std::size_t start = 0;
 
             while (start < sentence.size()
-                   && std::isspace(
-                       static_cast<unsigned char>(sentence[start])
-                   ) != 0) {
+                && std::isspace(
+                    static_cast<unsigned char>(sentence[start])
+                ) != 0) {
                 ++start;
             }
 
@@ -205,7 +230,7 @@ std::string TextDocument::numberSentences() {
                 }
 
                 result << sentenceNumber << ". "
-                       << sentence.substr(start);
+                    << sentence.substr(start);
 
                 ++sentenceNumber;
             }
@@ -217,9 +242,9 @@ std::string TextDocument::numberSentences() {
     std::size_t start = 0;
 
     while (start < sentence.size()
-           && std::isspace(
-               static_cast<unsigned char>(sentence[start])
-           ) != 0) {
+        && std::isspace(
+            static_cast<unsigned char>(sentence[start])
+        ) != 0) {
         ++start;
     }
 
@@ -229,7 +254,7 @@ std::string TextDocument::numberSentences() {
         }
 
         result << sentenceNumber << ". "
-               << sentence.substr(start);
+            << sentence.substr(start);
     }
 
     return result.str();

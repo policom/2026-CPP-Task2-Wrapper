@@ -3,6 +3,7 @@
 #include <cctype>
 #include <sstream>
 #include <string>
+#include <utility>
 
 TextDocument::TextDocument(std::string text)
     : text_(std::move(text)) {

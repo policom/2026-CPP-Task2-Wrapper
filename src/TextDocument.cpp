@@ -73,6 +73,7 @@ std::string TextDocument::replaceWords(
 
     while ((position = text_.find(oldWord, position))
            != std::string::npos) {
+
         const bool leftBoundary =
             position == 0
             || !isWordCharacter(
@@ -111,6 +112,7 @@ std::string TextDocument::searchPhrase(
 
     while ((position = text_.find(phrase, position))
            != std::string::npos) {
+
         if (found) {
             result << ", ";
         }
@@ -174,29 +176,60 @@ std::string TextDocument::numberSentences() {
     std::string sentence;
     std::size_t sentenceNumber = 1;
 
-    for (char character : text_) {
+    for (std::size_t i = 0; i < text_.size(); ++i) {
+        const char character = text_[i];
         sentence += character;
 
-        if (character == '.' || character == '!'
-            || character == '?') {
-            if (!sentence.empty()) {
+        const bool isEndMark =
+            character == '.' || character == '!' || character == '?';
+
+        const bool nextIsEndMark =
+            i + 1 < text_.size()
+            && (text_[i + 1] == '.'
+                || text_[i + 1] == '!'
+                || text_[i + 1] == '?');
+
+        if (isEndMark && !nextIsEndMark) {
+            std::size_t start = 0;
+
+            while (start < sentence.size()
+                   && std::isspace(
+                       static_cast<unsigned char>(sentence[start])
+                   ) != 0) {
+                ++start;
+            }
+
+            if (start < sentence.size()) {
                 if (sentenceNumber > 1) {
                     result << '\n';
                 }
 
-                result << sentenceNumber << ". " << sentence;
+                result << sentenceNumber << ". "
+                       << sentence.substr(start);
+
                 ++sentenceNumber;
-                sentence.clear();
             }
+
+            sentence.clear();
         }
     }
 
-    if (!sentence.empty()) {
+    std::size_t start = 0;
+
+    while (start < sentence.size()
+           && std::isspace(
+               static_cast<unsigned char>(sentence[start])
+           ) != 0) {
+        ++start;
+    }
+
+    if (start < sentence.size()) {
         if (sentenceNumber > 1) {
             result << '\n';
         }
 
-        result << sentenceNumber << ". " << sentence;
+        result << sentenceNumber << ". "
+               << sentence.substr(start);
     }
 
     return result.str();

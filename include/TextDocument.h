@@ -1,6 +1,7 @@
 #ifndef TEXT_DOCUMENT_H
 #define TEXT_DOCUMENT_H
 
+#include <cstddef>
 #include <string>
 
 class TextDocument {
